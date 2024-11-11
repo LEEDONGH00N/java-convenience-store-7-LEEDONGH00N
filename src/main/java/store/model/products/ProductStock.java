@@ -3,8 +3,8 @@ package store.model.products;
 public class ProductStock {
 
     private final Product product;
-    private NormalStock normalStock;
-    private PromotionStock promotionStock;
+    private NormalProduct normalProduct;
+    private PromotionProduct promotionProduct;
 
     public ProductStock(Product product) {
         this.product = product;
@@ -14,27 +14,27 @@ public class ProductStock {
         return product;
     }
 
-    public NormalStock getNormalStock() {
-        return normalStock;
+    public NormalProduct getNormalProduct() {
+        return normalProduct;
     }
 
-    public PromotionStock getPromotionStock() {
-        return promotionStock;
+    public PromotionProduct getPromotionProduct() {
+        return promotionProduct;
     }
 
     public boolean hasPromotionStock() {
-        return promotionStock != null;
+        return promotionProduct != null;
     }
 
     public boolean hasNormalStock() {
-        return normalStock != null;
+        return normalProduct != null;
     }
 
-    public void setNormalStock(NormalStock normalStock) {
-        this.normalStock = normalStock;
+    public void setNormalStock(NormalProduct normalStock) {
+        this.normalProduct = normalStock;
     }
 
-    public void setPromotionStock(PromotionStock promotionStock) {
-        this.promotionStock = promotionStock;
+    public void setPromotionStock(PromotionProduct promotionStock) {
+        this.promotionProduct = promotionStock;
     }
 }
