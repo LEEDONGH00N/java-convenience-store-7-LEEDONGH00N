@@ -4,11 +4,11 @@ import store.model.products.Product;
 
 public class Purchase {
 
-    private Product product;
-    private int totalAmount; // 총 금액
-    private int totalQuantity; // 총 개수
-    private int giveAwayQuantity; // 증정품 개수
-    private int promotionAmount; // 프로모션 적용 금액
+    private final Product product;
+    private final int totalAmount;
+    private final int totalQuantity;
+    private final int giveAwayQuantity;
+    private final int promotionAmount;
 
     public Purchase(Product product, int totalQuantity, int giveAwayQuantity, int promotionQuantityPerPromotion) {
         this.product = product;
@@ -40,16 +40,5 @@ public class Purchase {
 
     public int getPromotionDiscounted() {
         return product.getPrice() * giveAwayQuantity;
-    }
-
-    @Override
-    public String toString() {
-        return "Purchase{" +
-                "product=" + product.getName() +
-                ", totalAmount=" + totalAmount +
-                ", totalQuantity=" + totalQuantity +
-                ", giveAwayQuantity=" + giveAwayQuantity +
-                ", promotionAmount=" + promotionAmount +
-                '}';
     }
 }

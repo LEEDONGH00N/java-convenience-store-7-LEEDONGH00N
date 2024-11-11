@@ -1,4 +1,4 @@
-package store.utils;
+package store.utils.validator;
 
 import store.exception.ConvenienceExceptionStatus;
 

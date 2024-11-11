@@ -1,7 +1,7 @@
 package store.views;
 
 import camp.nextstep.edu.missionutils.Console;
-import store.utils.InputValidator;
+import store.utils.validator.InputValidator;
 
 public class InputView {
 

@@ -89,16 +89,4 @@ public class Receipt {
                 .mapToInt(Purchase::getTotalQuantity)
                 .sum();
     }
-
-    @Override
-    public String toString() {
-        return "Receipt{" +
-                "totalPrice=" + totalPrice +
-                ", totalPriceWithoutPromotions=" + totalPriceWithoutPromotions +
-                ", membershipDiscountAmount=" + membershipDiscountAmount +
-                ", promotionDiscountAmount=" + promotionDiscountAmount +
-                ", paymentAmount=" + paymentAmount +
-                ", purchases=" + purchases +
-                '}';
-    }
 }
