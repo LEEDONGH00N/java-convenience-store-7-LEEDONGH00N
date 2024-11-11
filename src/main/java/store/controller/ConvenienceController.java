@@ -32,22 +32,26 @@ public class ConvenienceController {
     }
 
     public void start(){
-        boolean getExtraOrders = true;
-        while(getExtraOrders){
+        boolean isExtraOrdersRequired = true;
+        while(isExtraOrdersRequired){
             try{
-                welcome();
+                printWelcomeMessage();
                 printCurrentStock();
                 askPurchase();
                 askDiscount();
                 printReceipt();
-                getExtraOrders = InputView.inputExtraOrders();
+                isExtraOrdersRequired = isExtraOrderWanted();
             }catch (IllegalArgumentException e){
                 OutputView.outputErrorMessage(e.getMessage());
             }
         }
     }
 
-    private void welcome(){
+    private static boolean isExtraOrderWanted() {
+        return InputView.inputExtraOrders();
+    }
+
+    private void printWelcomeMessage(){
         OutputView.outputWelcomeMessage();
     }
 
@@ -73,9 +77,21 @@ public class ConvenienceController {
     }
 
     private void askDiscount(){
+        while (true){
+            try{
+                isDiscountWanted();
+                break;
+            }catch (IllegalArgumentException e){
+                OutputView.outputErrorMessage(e.getMessage());
+            }
+        }
+    }
+
+    private void isDiscountWanted() {
         if(InputView.inputMembershipDiscount()){
             receipt.setMembershipDiscountAmount(
-                    MembershipUtils.discount(receipt.getTotalPriceWithoutPromotions()));
+                    MembershipUtils.discount(receipt.getTotalPriceWithoutPromotions())
+            );
         }
     }
 
@@ -149,9 +165,7 @@ public class ConvenienceController {
         if (!productStock.hasPromotionStock() || !isPromotionActive(productStock)) {
             return 0;
         }
-
         PromotionProduct promotionProduct = productStock.getPromotionProduct();
-
         if (promotionProduct.canPurchase(orderQuantity)) {
             return handlePromotionPurchase(productStock, promotionProduct, orderQuantity);
         }
@@ -180,11 +194,9 @@ public class ConvenienceController {
 
     private int confirmAndPurchaseWithoutPromotion(ProductStock productStock, int orderQuantity, PromotionProduct promotionProduct) {
         int noPromotionBenefitQuantity = promotionProduct.quantityCannotGetPromotion(orderQuantity);
-        boolean agree = InputView.inputExistingNoPromotionBenefit(productStock.getProduct().getName(), noPromotionBenefitQuantity);
-        if(agree){
-            int purchased = promotionProduct.purchase(productStock.getPromotionProduct().getStocks());
-            orderQuantity -= purchased;
-            return orderQuantity;
+        boolean willGetProductWithNoPromotion = InputView.inputExistingNoPromotionBenefit(productStock.getProduct().getName(), noPromotionBenefitQuantity);
+        if(willGetProductWithNoPromotion){
+            return promotionProduct.purchase(productStock.getPromotionProduct().getStocks());
         }
         promotionProduct.purchase(orderQuantity);
         return orderQuantity;
