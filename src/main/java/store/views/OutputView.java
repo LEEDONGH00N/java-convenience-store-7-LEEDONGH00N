@@ -1,6 +1,5 @@
 package store.views;
 
-import store.model.products.Product;
 import store.model.products.ProductStock;
 import store.model.receipt.Purchase;
 import store.model.receipt.Receipt;
@@ -80,7 +79,7 @@ public class OutputView {
         System.out.println(OUTPUT_RECEIPT_CONV);
         System.out.println(String.format(OUTPUT_RECEIPT_PROPERTIES, "상품명", "수량", "금액"));
         for (Purchase purchase : receipt.getPurchases()){
-            System.out.println(String.format(OUTPUT_RECEIPT_PURCHASES, purchase.getProduct().getName(), purchase.getTotalQuantity(), purchase.getTotalAmount()));
+            System.out.println(String.format(OUTPUT_RECEIPT_PURCHASES, purchase.getProduct().getName(), purchase.getTotalQuantity(), String.format("%,d",purchase.getTotalAmount())));
         }
         System.out.println(OUTPUT_RECEIPT_GIVEAWAY_DIVIDER);
         for (Purchase purchase : receipt.getPurchases()){
@@ -89,9 +88,9 @@ public class OutputView {
             }
         }
         System.out.println(OUTPUT_RECEIPT_AMOUNT_DIVIDER);
-        System.out.println(String.format(OUTPUT_RECEIPT_TOTAL_AMOUNT, "총구매액", receipt.getTotalCount(), receipt.getTotalPrice()));
-        System.out.println(String.format(OUTPUT_RECEIPT_PROMOTION_DISCOUNT, "행사할인", receipt.getPromotionDiscountAmount()));
-        System.out.println(String.format(OUTPUT_RECEIPT_MEMBERSHIP_DISCOUNT, "멤버십할인", receipt.getMembershipDiscountAmount()));
-        System.out.println(String.format(OUTPUT_RECEIPT_PAYMENT, "내실돈", receipt.getPaymentAmount()));
+        System.out.println(String.format(OUTPUT_RECEIPT_TOTAL_AMOUNT, "총구매액", receipt.getTotalCount(), String.format("%,d", receipt.getTotalPrice())));
+        System.out.println(String.format(OUTPUT_RECEIPT_PROMOTION_DISCOUNT, "행사할인", String.format("-%,d", receipt.getPromotionDiscountAmount())));
+        System.out.println(String.format(OUTPUT_RECEIPT_MEMBERSHIP_DISCOUNT, "멤버십할인", String.format("-%,d", receipt.getMembershipDiscountAmount())));
+        System.out.println(String.format(OUTPUT_RECEIPT_PAYMENT, "내실돈", String.format("%,d", receipt.getPaymentAmount())));
     }
 }

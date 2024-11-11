@@ -1,6 +1,7 @@
 package store.views;
 
 import camp.nextstep.edu.missionutils.Console;
+import store.utils.InputValidator;
 
 public class InputView {
 
@@ -17,21 +18,21 @@ public class InputView {
 
     public static boolean inputCanGetAdditional(String name, int quantity){
         System.out.println(String.format(INPUT_ASK_ADDITIONAL_GET, name, quantity));
-        return Console.readLine().equalsIgnoreCase("Y");
+        return InputValidator.isYesOrNo(Console.readLine());
     }
 
     public static boolean inputMembershipDiscount(){
         System.out.println(INPUT_ASK_MEMBERSHIP_DISCOUNT);
-        return Console.readLine().equalsIgnoreCase("Y");
+        return InputValidator.isYesOrNo(Console.readLine());
     }
 
     public static boolean inputExtraOrders(){
         System.out.println(INPUT_ASK_EXTRA_ORDERS);
-        return Console.readLine().equalsIgnoreCase("Y");
+        return InputValidator.isYesOrNo(Console.readLine());
     }
 
     public static boolean inputExistingNoPromotionBenefit(String name, int quantity){
         System.out.println(String.format(INPUT_ASK_EXISTING_NO_PROMOTION_BENEFIT, name, quantity));
-        return Console.readLine().equalsIgnoreCase("Y");
+        return InputValidator.isYesOrNo(Console.readLine());
     }
 }
