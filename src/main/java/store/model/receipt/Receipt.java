@@ -5,7 +5,7 @@ import java.util.List;
 
 public class Receipt {
 
-    private int totalPrice; // 할인을 안한 총 금액
+    private int totalPrice;
     private int totalPriceWithoutPromotions;
     private int membershipDiscountAmount;
     private int promotionDiscountAmount;
@@ -28,6 +28,7 @@ public class Receipt {
     }
 
     public int getPaymentAmount() {
+        paymentAmount = totalPrice - membershipDiscountAmount - promotionDiscountAmount;
         return paymentAmount;
     }
 
@@ -63,7 +64,6 @@ public class Receipt {
         adjustTotalPriceWithoutPromotions();
         adjustPromotionDiscountAmount();
         adjustTotalCount();
-        adjustTotalPayment();
     }
 
     private void adjustTotalPrice(){
@@ -88,10 +88,6 @@ public class Receipt {
         totalCount = purchases.stream()
                 .mapToInt(Purchase::getTotalQuantity)
                 .sum();
-    }
-
-    private void adjustTotalPayment(){
-        paymentAmount = totalPrice - membershipDiscountAmount - promotionDiscountAmount;
     }
 
     @Override
