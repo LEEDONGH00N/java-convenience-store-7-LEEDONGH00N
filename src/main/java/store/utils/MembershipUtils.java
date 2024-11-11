@@ -5,8 +5,7 @@ import store.properties.MembershipProperties;
 public class MembershipUtils {
 
     public static int discount(int amountWithoutPromotion){
-        int discountAmount = amountWithoutPromotion -
-                (amountWithoutPromotion * MembershipProperties.MEMBERSHIP_DISCOUNT_PERCENTAGE / 100);
+        int discountAmount = amountWithoutPromotion * (MembershipProperties.MEMBERSHIP_DISCOUNT_PERCENTAGE) / 100;
         return validateDiscountAmountMax(discountAmount);
     }
 
