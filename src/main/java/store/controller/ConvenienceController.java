@@ -1,11 +1,14 @@
 package store.controller;
 
+import camp.nextstep.edu.missionutils.DateTimes;
+import store.exception.ConvenienceExceptionStatus;
 import store.model.products.NormalProduct;
 import store.model.products.ProductStock;
 import store.model.products.PromotionProduct;
 import store.model.promotions.Promotion;
 import store.model.receipt.Purchase;
 import store.model.receipt.Receipt;
+import store.utils.InputValidator;
 import store.utils.MembershipUtils;
 import store.utils.files.ProductsFileReader;
 import store.utils.files.PromotionsFileReaders;
@@ -13,7 +16,6 @@ import store.views.InputView;
 import store.views.OutputView;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 
@@ -54,12 +56,15 @@ public class ConvenienceController {
     }
 
     private void askPurchase(){
-        try{
-            String purchase = InputView.inputPurchaseProduct();
-            List<String> purchases = Arrays.stream(purchase.split(",")).toList();
-            extractOrders(purchases);
-        }catch (IllegalArgumentException e){
-            OutputView.outputErrorMessage(e.getMessage());
+        while(true){
+            receipt = new Receipt();
+            try{
+                String purchase = InputValidator.validateInput(InputView.inputPurchaseProduct());
+                extractOrders(Arrays.stream(purchase.split(",")).toList());
+                return;
+            }catch (IllegalArgumentException e){
+                OutputView.outputErrorMessage(e.getMessage());
+            }
         }
     }
 
@@ -74,30 +79,52 @@ public class ConvenienceController {
         }
     }
 
-
     private void extractOrders(List<String> purchases) {
-        receipt = new Receipt();
-        for(String order : purchases){
-            order = order.replace("[", "").replace("]", "");
-            List<String> orders = Arrays.stream(order.split("-")).toList();
-            String name = orders.getFirst();
-            ProductStock productStock = findProduct(name);
-            int orderQuantity = Integer.parseInt(orders.getLast());
-            int promotionPurchaseCount = purchaseFromPromotion(productStock, orderQuantity);
-            orderQuantity = hasOrderQuantityIncreased(orderQuantity, promotionPurchaseCount);
-            int normalPurchaseCount = orderQuantity - promotionPurchaseCount;
-            purchaseFromNormal(productStock, normalPurchaseCount);
-            Purchase purchase = new Purchase(
-                    productStock.getProduct(),
-                    promotionPurchaseCount + normalPurchaseCount,
-                    findPromotionCount(promotionPurchaseCount, productStock),
-                    findPromotionQuantityPerPromotion(productStock));
-            receipt.addPurchase(purchase);
-            receipt.adjust();
+        purchases.forEach(this::processSingleOrder);
+    }
+
+    private void processSingleOrder(String order){
+        List<String> orders = getOrders(order);
+        ProductStock productStock = findProduct(orders.getFirst().trim());
+        int orderQuantity = Integer.parseInt(orders.getLast().trim());
+        validateStock(productStock, orderQuantity);
+        int promotionPurchaseCount = purchaseFromPromotion(productStock, orderQuantity);
+        orderQuantity = hasOrderQuantityIncreased(orderQuantity, promotionPurchaseCount);
+        int normalPurchaseCount = orderQuantity - promotionPurchaseCount;
+        purchaseFromNormal(productStock, orderQuantity - promotionPurchaseCount);
+        Purchase purchase = new Purchase(
+                productStock.getProduct(),
+                promotionPurchaseCount + normalPurchaseCount,
+                findPromotionCount(promotionPurchaseCount, productStock),
+                findPromotionQuantityPerPromotion(productStock));
+        handleReceipt(purchase);
+    }
+
+    private void handleReceipt(Purchase purchase) {
+        receipt.addPurchase(purchase);
+        receipt.adjust();
+    }
+
+    private void validateStock(ProductStock productStock, int orderQuantity) {
+        if(!isStockEnough(productStock, orderQuantity)){
+            throw new IllegalArgumentException(ConvenienceExceptionStatus.STOCK_OUT_OF_RANGE.getMessage());
         }
     }
 
-    private static int hasOrderQuantityIncreased(int orderQuantity, int promotionPurchaseCount) {
+    private List<String> getOrders(String order) {
+        order = order.replace("[", "").replace("]", "");
+        return Arrays.stream(order.split("-")).toList();
+    }
+
+    private boolean isStockEnough(ProductStock productStock, int orderQuantity) {
+        int totalStock = productStock.getNormalProduct().getStocks();
+        if(productStock.hasPromotionStock()){
+            return totalStock + productStock.getPromotionProduct().getStocks() >= orderQuantity;
+        }
+        return totalStock >= orderQuantity;
+    }
+
+    private int hasOrderQuantityIncreased(int orderQuantity, int promotionPurchaseCount) {
         if(orderQuantity < promotionPurchaseCount){
             orderQuantity = promotionPurchaseCount;
         }
@@ -118,45 +145,59 @@ public class ConvenienceController {
         return productStock.getPromotionProduct().getPromotion().getAvailableQuantityPerPromotion();
     }
 
-    private int purchaseFromPromotion(ProductStock productStock, int orderQuantity){
-
-        if(!productStock.hasPromotionStock()){
+    private int purchaseFromPromotion(ProductStock productStock, int orderQuantity) {
+        if (!productStock.hasPromotionStock() || !isPromotionActive(productStock)) {
             return 0;
         }
+
         PromotionProduct promotionProduct = productStock.getPromotionProduct();
-        if (!promotionProduct.getPromotion().compareDate(LocalDateTime.now())){  // 프로모션 기간인가?
-            return 0;
+
+        if (promotionProduct.canPurchase(orderQuantity)) {
+            return handlePromotionPurchase(productStock, promotionProduct, orderQuantity);
         }
 
-        // 주문한 수량만큼 주문이 가능한가?
-        if(promotionProduct.canPurchase(orderQuantity)){
-            // 증정품을 추가로 받을 수 있는 수량인가??
-            if(promotionProduct.canGetAdditional(orderQuantity)){
-                boolean willGetAdditional = InputView.inputCanGetAdditional(productStock.getProduct().getName(), promotionProduct.getGiveaway());
-                if(willGetAdditional){
-                    if(!promotionProduct.canPurchase(orderQuantity + promotionProduct.getGiveaway())){
-                        OutputView.outputPromotionCannotGiveGiveaway();
-                    }
-                    orderQuantity += promotionProduct.getGiveaway();
-                    promotionProduct.purchase(orderQuantity);
-                    return orderQuantity;
-                }
-            }
+        return confirmAndPurchaseWithoutPromotion(productStock, orderQuantity, promotionProduct);
+    }
 
-            //그대로 결제 가능한 수량인 경우
-            promotionProduct.purchase(orderQuantity);
-            return orderQuantity;
+    private boolean isPromotionActive(ProductStock productStock) {
+        return productStock.getPromotionProduct().getPromotion().compareDate(DateTimes.now());
+    }
+
+    private int handlePromotionPurchase(ProductStock productStock, PromotionProduct promotionProduct, int orderQuantity) {
+        if (promotionProduct.canGetAdditional(orderQuantity) && willGetAdditional(productStock, promotionProduct)) {
+            return purchaseWithGiveaway(promotionProduct, orderQuantity);
         }
+        promotionProduct.purchase(orderQuantity);
+        return orderQuantity;
+    }
 
+    private int purchaseWithGiveaway(PromotionProduct promotionProduct, int orderQuantity) {
+        isPromotionProductStockEnoughWithAdditional(orderQuantity, promotionProduct);
+        orderQuantity += promotionProduct.getGiveaway();
+        promotionProduct.purchase(orderQuantity);
+        return orderQuantity;
+    }
+
+    private int confirmAndPurchaseWithoutPromotion(ProductStock productStock, int orderQuantity, PromotionProduct promotionProduct) {
         int noPromotionBenefitQuantity = promotionProduct.quantityCannotGetPromotion(orderQuantity);
         boolean agree = InputView.inputExistingNoPromotionBenefit(productStock.getProduct().getName(), noPromotionBenefitQuantity);
         if(agree){
-            orderQuantity -= noPromotionBenefitQuantity;
-            promotionProduct.purchase(orderQuantity);
+            int purchased = promotionProduct.purchase(productStock.getPromotionProduct().getStocks());
+            orderQuantity -= purchased;
             return orderQuantity;
         }
         promotionProduct.purchase(orderQuantity);
         return orderQuantity;
+    }
+
+    private boolean willGetAdditional(ProductStock productStock, PromotionProduct promotionProduct) {
+        return InputView.inputCanGetAdditional(productStock.getProduct().getName(), promotionProduct.getGiveaway());
+    }
+
+    private void isPromotionProductStockEnoughWithAdditional(int orderQuantity, PromotionProduct promotionProduct) {
+        if(!promotionProduct.canPurchase(orderQuantity + promotionProduct.getGiveaway())){
+            OutputView.outputPromotionCannotGiveGiveaway();
+        }
     }
 
     private void purchaseFromNormal(ProductStock productStock, int orderQuantity){
@@ -164,9 +205,6 @@ public class ConvenienceController {
             return;
         }
         NormalProduct normalProduct = productStock.getNormalProduct();
-        if (!normalProduct.canPurchase(orderQuantity)){
-            throw new IllegalArgumentException("재고가 충분하지 않습니다. 수량을 다시 입력해주세요");
-        }
         normalProduct.purchase(orderQuantity);
     }
 
@@ -174,7 +212,7 @@ public class ConvenienceController {
         return productStocks.stream()
                 .filter(productStock -> productStock.getProduct().getName().equals(name))
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("상품이 존재하지 않습니다."));
+                .orElseThrow(() -> new IllegalArgumentException(ConvenienceExceptionStatus.NO_PRODUCT_FOUND.getMessage()));
 
     }
 
